@@ -1,0 +1,13 @@
+pandas
+numpy
+scipy
+scikit-learn
+statsmodels
+statsforecast
+lightgbm
+optuna
+matplotlib
+pyarrow
+openai
+anthropic
+holidays
