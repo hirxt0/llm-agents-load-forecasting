@@ -20,4 +20,30 @@ python -m baselines.run_baselines --split dev       # 40 отладочных о
 
 Каждая модель видит только 336 часов истории своего окна, гиперпараметры фиксированы. Результаты - `results/bl_<модель>_<split>/` (`predictions.csv` и `run_info.json`), сводка - `python -m one_agent_forecasting.src.summarize`.
 
-Foundation-модели (Chronos-Bolt, Chronos-2, TimesFM) и проверка их обучающих корпусов - по ТЗ в `shared/BASELINE_TZ.md`, отдельным файлом в этой папке.
+## Foundation-модели
+
+Zero-shot, без дообучения, локально (CPU/GPU), API не нужен. Запуск из корня репозитория:
+
+```
+python -m baselines.run_foundation --split dev --models chronos_bolt --limit 4   # проверка, ничего не пишет
+python -m baselines.run_foundation --split test
+python -m baselines.run_foundation --split dev
+```
+
+| Модель | Что делает |
+|---|---|
+| `chronos_bolt` | Chronos-Bolt (base), `amazon/chronos-bolt-base`: медиана прогноза, только история |
+| `chronos2` | Chronos-2, `amazon/chronos-2`, без ковариат: квантиль 0.5 |
+| `chronos2_weather` | То же + температура как ковариата (история - факт, день прогноза - прогноз с той же ошибкой, что у агентов) |
+| `timesfm` | TimesFM 2.5 (200M), `google/timesfm-2.5-200m-pytorch`: контекст 336, горизонт 24 |
+
+Правила и формат результатов те же, что у классических моделей. Если модель не загрузилась или упали первые три окна подряд, прогон этой модели останавливается и папку не пишет, чтобы «как вчера» не попал в сводку под её именем. В `run_info.json` дополнительно - чекпойнт, устройство, железо и версии пакетов.
+
+Установка (поверх окружения агента):
+```
+pip install -r one_agent_forecasting/requirements.txt -r baselines/requirements.txt
+git clone https://github.com/google-research/timesfm && pip install -e "timesfm[torch]"   # TimesFM 2.5 нет в PyPI
+```
+Веса скачиваются с Hugging Face при первом запуске. Для `chronos2_weather` нужны файлы погоды в `data/raw/`, как для `lgbm_weather`.
+
+Видели ли эти модели наши данные при предобучении - [`LEAKAGE.md`](LEAKAGE.md): Moirai и TimesFM 2.5 обучались на корпусах, где есть BDG-2 и LCL, у Chronos-2 - вероятно; их zero-shot результаты на наших зданиях могут быть завышены.

@@ -1,0 +1,7 @@
+# Foundation-модели (run_foundation.py). Ставить поверх one_agent_forecasting/requirements.txt:
+#   pip install -r one_agent_forecasting/requirements.txt -r baselines/requirements.txt
+numpy>=2                    # новый pyarrow не работает с numpy 1.x
+torch>=2.6                  # transformers 5.x (нужен Chronos) требует torch >= 2.6
+chronos-forecasting>=2.0    # Chronos-Bolt и Chronos-2
+# TimesFM 2.5 в PyPI нет (там старый пакет без TimesFM_2p5_200M_torch), ставится из исходников:
+#   git clone https://github.com/google-research/timesfm && pip install -e "timesfm[torch]"
