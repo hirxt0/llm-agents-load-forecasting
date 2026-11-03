@@ -107,17 +107,35 @@ def predict(model, y, ts, bid, origin):
 
 # ---------------------------------------------------------------- прогон
 
+DISTRIBUTIONS = {"chronos": "chronos-forecasting"}       # имя пакета в pip, если отличается от import
+
+
 def _versions(names):
+    from importlib.metadata import version
     out = {}
     for n in names:
         try:
             out[n] = __import__(n).__version__
         except Exception:
-            out[n] = None
+            try:                                          # у TimesFM из исходников нет __version__
+                out[n] = version(DISTRIBUTIONS.get(n, n))
+            except Exception:
+                out[n] = None
     return out
 
 
+def _load(m):
+    """Загрузка весов до прогона, чтобы она не попала во время первого окна."""
+    if m == "timesfm":
+        _timesfm()
+    else:
+        _chronos(CHECKPOINTS[m])
+
+
 def run_model(m, groups, split, write=True):
+    t_load = time.time()
+    _load(m)
+    load_seconds = time.time() - t_load
     rows, failures, t0 = [], [], time.time()
     for i, ((bid, wid), g) in enumerate(groups):
         g = g.sort_values("step")
@@ -157,7 +175,7 @@ def run_model(m, groups, split, write=True):
                        "device": _device()},
             "mean_seconds_per_window": round(float(np.mean([r[4] for r in rows])), 4),
             "failures": failures, "date": datetime.now().isoformat(timespec="seconds"),
-            "total_seconds": round(total, 1),
+            "total_seconds": round(total, 1), "model_load_seconds": round(load_seconds, 1),
             "hardware": {"platform": platform.platform(), "processor": platform.processor() or platform.machine(),
                          "python": platform.python_version()},
             "packages": _versions(["numpy", "pandas", *PACKAGES[m]])}
