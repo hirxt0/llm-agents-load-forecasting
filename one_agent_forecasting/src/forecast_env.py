@@ -110,8 +110,8 @@ class ForecastEnv:
     def initial_message(self):
         if self.variant != "no_tools":
             return "Start. Produce the 24-hour forecast."
-        rows = "\n".join(f"{self._label(t)}: {v:.4f}" for t, v in zip(self.ts[-168:], self.y[-168:]))
-        return (f"Hourly consumption for the last 168 hours (kWh):\n{rows}\n\n"
+        rows = "\n".join(f"{self._label(t)}: {v:.4f}" for t, v in zip(self.ts, self.y))
+        return (f"Hourly consumption for the last {len(self.y)} hours (kWh):\n{rows}\n\n"
                 f"Forecast {self._day_label(self.origin)}, hours 00-23, and call submit_forecast.")
 
     def _day_label(self, t):

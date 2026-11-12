@@ -1,0 +1,30 @@
+{
+  "provider": "openai",
+  "model": "gpt-5",
+  "reasoning_effort": "low",
+  "variant": "series",
+  "weather_mode": "noisy",
+  "masked_dates": false,
+  "split": "dev",
+  "subset": "all",
+  "limit": 1,
+  "workers": 4,
+  "max_steps": 20,
+  "repeat": 9002,
+  "dry_run": false,
+  "sha256": {
+    "windows_dev.parquet": "823f51d08e33d0e68069ed05b711a3634ac658368aab419a20120673354dfce9",
+    "agent.py": "27322626cd2608ade15092fa95979161ecd4519ba7751c271e478ce86f39704d",
+    "audit_traces.py": "c0d14f98ba0286b19b1099e4201279b81716b544e107ee58226ea3ebf53c0745",
+    "config.py": "6a487dd1b24a23a4ddb85c88d163b4e3bb7463936a08cf639b8534a1a5cae843",
+    "context.py": "5870e6d7d2cb225e32540bcba1803eeec546fc6710aa9f1d9e32f67f296f1cb0",
+    "data.py": "daf15e6c84e98c9a923d2e2b55b46eed79f443f8f8c325aa35ba94be4c815c62",
+    "export_windows.py": "8af56f4f49d26f7963e78f3ef0f16d36ddb14b1d1c2b2dd68505007137245cf0",
+    "forecast_env.py": "e41fd01eccfc296ddeb0be9983ba1f2138266aea0f13d437b9129b26a1e7ff41",
+    "metrics.py": "727e544812733b9baa8be0e458687791944756aeced22392c170fa1738923679",
+    "probe_memorization.py": "2004c5225ef60a33731a5c15e91a790abd1d33168e3aa23c31c603fc7b163565",
+    "run_forecast_agent.py": "547b8dc58b298efed1afaade42ab1546d6f507f1cabba041fd739c1a9058c373",
+    "stats.py": "626bf307454db840a84c38d0e64fab69550e0bffa810999bc4daafe1531ccb02",
+    "summarize.py": "9c796aa43701d90e64bd6388cc79500de86833c3a33bb65c7ee3feb6a2e6380f"
+  }
+}

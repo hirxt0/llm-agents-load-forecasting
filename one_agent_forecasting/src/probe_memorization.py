@@ -18,7 +18,7 @@ from scipy.stats import wilcoxon
 
 import one_agent_forecasting.src.context as context
 from one_agent_forecasting.src.agent import LLMClient
-from one_agent_forecasting.src.config import PROCESSED, RESULTS
+from one_agent_forecasting.src.config import WINDOWS, RESULTS
 from one_agent_forecasting.src.metrics import forecast_metrics
 
 DATASET_NAME = {"BDG-2": "Building Data Genome Project 2 (BDG-2)",
@@ -60,7 +60,7 @@ def main():
     ap.add_argument("--limit", type=int, default=60)
     a = ap.parse_args()
     llm = LLMClient("openai", a.model, reasoning_effort=a.reasoning_effort)
-    win = pd.read_parquet(PROCESSED / "windows.parquet")
+    win = pd.read_parquet(WINDOWS["test"])
     groups = list(win.groupby(["building_id", "window_id"]))
     groups = groups[:: max(1, len(groups) // a.limit)][: a.limit]
     rows = []

@@ -18,7 +18,7 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from one_agent_forecasting.src.config import PROCESSED, RESULTS
+from one_agent_forecasting.src.config import WINDOWS, RESULTS
 from one_agent_forecasting.src.metrics import forecast_metrics
 from one_agent_forecasting.src.stats import paired_compare, holm, equivalent
 
@@ -26,8 +26,10 @@ LADDER = ["no_tools", "series", "calendar", "weather", "full"]
 METRICS = ["NRMSE", "NMAE", "MASE", "NMBE", "MAE", "RMSE", "MAPE"]
 
 
-def load_windows(split):
-    w = pd.read_parquet(PROCESSED / ("windows.parquet" if split == "test" else "windows_dev.parquet"))
+def load_windows(split, subset="main"):
+    w = pd.read_parquet(WINDOWS[split])
+    if split == "test" and subset == "main":      # все системы сравниваем на одних и тех же 200 окнах
+        w = w[w.in_main_200]
     hist = {k: g.sort_values("step").y_clean.to_numpy() for k, g in w[w.step < 0].groupby(["building_id", "window_id"])}
     meta = w[w.step == 0].set_index(["building_id", "window_id"])[["dataset", "day_type"]]
     return w, hist, meta
@@ -77,18 +79,21 @@ def is_repeat(m):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", default="test", choices=["dev", "test"])
+    ap.add_argument("--subset", default="main", choices=["main", "all"],
+                    help="main — основные 200 окон (по умолчанию), all — все 400 (для бейзлайнов)")
     a = ap.parse_args()
     pd.set_option("display.width", 220)
-    w, hist, meta = load_windows(a.split)
+    w, hist, meta = load_windows(a.split, a.subset)
     systems, scores = load_systems(a.split)
     if systems.empty:
         print("нет прогонов для", a.split)
         return
+    systems = systems[[k in hist for k in zip(systems.building_id, systems.window_id)]]
     keys = set(zip(systems.building_id, systems.window_id))
     ref = reference_predictions(w)
     ref = ref[[k in keys for k in zip(ref.building_id, ref.window_id)]]
     pw = per_window(pd.concat([systems, ref], ignore_index=True), hist, meta)
-    pw.to_csv(RESULTS / f"summary_{a.split}_windows.csv", index=False)
+    pw.to_csv(RESULTS / f"summary_{a.split}_{a.subset}_windows.csv", index=False)
 
     # 1) метрики по датасетам: сначала среднее по окнам здания, потом медиана по зданиям
     tables = []
@@ -100,12 +105,12 @@ def main():
         tables.append(t.assign(dataset=ds))
         name = "коммерческие (BDG-2)" if ds == "BDG-2" else "жилые (LCL)"
         print(f"\n=== {name}: медиана по зданиям, меньше — лучше (NRMSE — основная)\n{t.to_string()}")
-    pd.concat(tables).to_csv(RESULTS / f"summary_{a.split}_metrics.csv")
+    pd.concat(tables).to_csv(RESULTS / f"summary_{a.split}_{a.subset}_metrics.csv")
 
     # 2) по типам дней
     dt = pw.groupby(["dataset", "day_type", "method"]).NRMSE.median().unstack("day_type").round(2)
     print(f"\n=== NRMSE по типам дней (медиана по окнам)\n{dt.to_string()}")
-    dt.to_csv(RESULTS / f"summary_{a.split}_daytypes.csv")
+    dt.to_csv(RESULTS / f"summary_{a.split}_{a.subset}_daytypes.csv")
 
     # 3) сравнения
     methods = sorted(pw.method.unique())
@@ -130,7 +135,7 @@ def main():
         cmp = cmp.drop(columns="ci90")
         print("\n=== Сравнения: отношение NRMSE b/a по зданиям (< 1 — b лучше), 95% ДИ, Wilcoxon + Холм")
         print(cmp[["dataset", "a", "b", "n_buildings", "ratio", "ci95", "p", "p_holm"]].round(4).to_string(index=False))
-        cmp.to_csv(RESULTS / f"summary_{a.split}_comparisons.csv", index=False)
+        cmp.to_csv(RESULTS / f"summary_{a.split}_{a.subset}_comparisons.csv", index=False)
 
     # 4) утечка: настоящие даты против скрытых
     for m in agents:
@@ -143,7 +148,7 @@ def main():
                     print(f"\n=== Утечка [{ds}] {real} → скрытые даты: отношение {r['ratio']:.3f}, "
                           f"95% ДИ [{r['ci95'][0]:.3f}, {r['ci95'][1]:.3f}], p={r['p']:.4f}; "
                           f"эквивалентны в пределах ±5%: {'да' if eq else 'нет'}. "
-                          "Заметно хуже со скрытыми датами — агенту помогает память о датах (нижняя оценка утечки).")
+                          "Разница измеряет чувствительность к скрытию дат и названий праздников.")
 
     # 5) разброс между повторами
     for m in agents:
@@ -157,12 +162,13 @@ def main():
 
     # 6) стоимость и надёжность
     if not scores.empty:
+        scores = scores[[k in hist for k in zip(scores.building_id, scores.window_id)]]
         c = scores.groupby("method").agg(n=("failed", "size"), failed=("failed", "mean"),
                                          llm_calls=("llm_calls", "mean"), tokens_in=("tokens_in", "mean"),
                                          tokens_out=("tokens_out", "mean"), seconds=("seconds", "mean"),
-                                         usd_per_forecast=("cost_usd", "mean"), usd_total=("cost_usd", "sum")).round(4)
+                                         usd_per_forecast=("cost_usd", "mean"), usd_total=("cost_usd", lambda x: x.sum(min_count=1))).round(4)
         print(f"\n=== Стоимость и надёжность\n{c.to_string()}")
-        c.to_csv(RESULTS / f"summary_{a.split}_cost.csv")
+        c.to_csv(RESULTS / f"summary_{a.split}_{a.subset}_cost.csv")
 
 
 if __name__ == "__main__":

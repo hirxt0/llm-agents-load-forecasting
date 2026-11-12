@@ -1,0 +1,7 @@
+{
+  "state": "stopped",
+  "phase": "test full --subset repeat --repeat 1",
+  "estimated_usd": 35.50557350000024,
+  "budget_usd": 39.0,
+  "reason": "Provider call failed (PermissionDeniedError, HTTP 403)."
+}

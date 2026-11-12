@@ -1,0 +1,18 @@
+{
+  "model": "lgbm",
+  "split": "test",
+  "windows": 400,
+  "inputs": "336 h history + calendar",
+  "lightgbm_params": {
+    "n_estimators": 200,
+    "learning_rate": 0.05,
+    "num_leaves": 15,
+    "min_child_samples": 10,
+    "verbose": -1,
+    "random_state": 0
+  },
+  "mean_seconds_per_window": 4.0388,
+  "failures": [],
+  "date": "2026-10-25T21:25:11",
+  "total_seconds_all_models": 377.5
+}

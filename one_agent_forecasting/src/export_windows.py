@@ -8,9 +8,8 @@ import shutil
 
 import pandas as pd
 
-from one_agent_forecasting.src.config import PROCESSED, ROOT, HISTORY, HORIZON
+from one_agent_forecasting.src.config import PROCESSED, SHARED, HISTORY, HORIZON
 
-SHARED = ROOT / "shared"
 
 
 def spec(win):

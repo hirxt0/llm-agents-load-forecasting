@@ -1,0 +1,11 @@
+{
+  "model": "ets",
+  "split": "test",
+  "windows": 400,
+  "inputs": "336 h history",
+  "lightgbm_params": null,
+  "mean_seconds_per_window": 0.8835,
+  "failures": [],
+  "date": "2026-10-25T21:25:11",
+  "total_seconds_all_models": 377.5
+}

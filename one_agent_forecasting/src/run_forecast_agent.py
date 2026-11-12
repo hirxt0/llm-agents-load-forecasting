@@ -15,6 +15,8 @@
   python run_forecast_agent.py --model gpt-5 --variant weather --split test --masked-dates
 """
 import argparse
+import hashlib
+from pathlib import Path
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -23,7 +25,7 @@ import numpy as np
 import pandas as pd
 
 from one_agent_forecasting.src.agent import LLMClient, run_agent
-from one_agent_forecasting.src.config import PROCESSED, RESULTS, PRICE_PER_M
+from one_agent_forecasting.src.config import WINDOWS, RESULTS, PRICE_PER_M
 from one_agent_forecasting.src.forecast_env import ForecastEnv, VARIANT_TOOLS
 from one_agent_forecasting.src.metrics import forecast_metrics
 
@@ -122,18 +124,42 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
-    win = pd.read_parquet(PROCESSED / ("windows_dev.parquet" if a.split == "dev" else "windows.parquet"))
+    if a.split == "dev" and a.subset != "all":
+        ap.error("main и repeat доступны только для test")
+    if a.masked_dates and a.variant == "full":
+        ap.error("full несовместим со скрытыми датами")
+    if a.limit is not None and a.limit < 1:
+        ap.error("limit должен быть положительным")
+    if a.workers < 1 or a.max_steps < 1:
+        ap.error("workers и max-steps должны быть положительными")
+    if a.split == "test" and a.subset == "all":
+        ap.error("для тестового прогона агента укажите --subset main или repeat")
+
+    win = pd.read_parquet(WINDOWS[a.split])
     if a.subset != "all":
         win = win[win[{"main": "in_main_200", "repeat": "in_repeat_50"}[a.subset]]]
     groups = list(win.groupby(["building_id", "window_id"]))
-    if a.limit:
+    if a.limit is not None:
         groups = groups[: a.limit]
 
     tag = "dry-run" if a.dry_run else f"{a.model}-{a.reasoning_effort}"
     name = f"fc_{tag}_{a.variant}_{a.weather_mode}{'_masked' if a.masked_dates else ''}{f'_r{a.repeat}' if a.repeat else ''}_{a.split}"
     out_dir = RESULTS / name
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "run_config.json").write_text(json.dumps(vars(a), indent=2))
+    source = Path(__file__).resolve().parent
+    inputs = [WINDOWS[a.split], *sorted(source.glob("*.py"))]
+    config = {**vars(a), "sha256": {
+        p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs
+    }}
+    config_path = out_dir / "run_config.json"
+    if config_path.exists():
+        previous = json.loads(config_path.read_text())
+        if previous != config:
+            ap.error(f"конфигурация прогона изменилась: {out_dir}; задайте новый --repeat")
+    else:
+        if any(out_dir.iterdir()):
+            ap.error(f"отсутствует конфигурация существующего прогона: {out_dir}")
+        config_path.write_text(json.dumps(config, indent=2))
     done = set()
     if (out_dir / "scores.csv").exists():      # продолжение прерванного прогона
         s = pd.read_csv(out_dir / "scores.csv")

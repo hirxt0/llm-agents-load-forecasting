@@ -1,0 +1,15 @@
+{
+  "provider": "openai",
+  "model": "gpt-5",
+  "reasoning_effort": "low",
+  "variant": "weather",
+  "weather_mode": "noisy",
+  "masked_dates": false,
+  "split": "dev",
+  "subset": "all",
+  "limit": 1,
+  "workers": 1,
+  "max_steps": 8,
+  "repeat": 9001,
+  "dry_run": false
+}

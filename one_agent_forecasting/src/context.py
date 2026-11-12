@@ -141,7 +141,9 @@ def _wiki_as_of(title, as_of_utc):
     key = f"{title}|{as_of_utc}"
     cached = _cache_get(key)
     if cached is not None:
-        return cached
+        rev_time = cached.get("revision_time")
+        if (rev_time and rev_time <= as_of_utc) or (not rev_time and not cached.get("text")):
+            return cached
     q = {"action": "query", "prop": "revisions", "titles": title, "rvlimit": 1, "rvdir": "older",
          "rvstart": as_of_utc, "rvprop": "ids|timestamp|content", "rvslots": "main",
          "format": "json", "formatversion": 2}
@@ -160,7 +162,8 @@ def _wiki_as_of(title, as_of_utc):
     else:
         rev = page["revisions"][0]
         out = {"revision_time": rev["timestamp"], "revid": rev.get("revid"), "text": rev["slots"]["main"]["content"]}
-        assert rev["timestamp"] <= as_of_utc, "ревизия новее момента прогноза"
+        if rev["timestamp"] > as_of_utc:
+            return {"error": "news revision newer than cutoff"}
     _cache_put(key, out)
     return out
 

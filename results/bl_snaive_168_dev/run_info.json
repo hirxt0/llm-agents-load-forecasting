@@ -1,0 +1,11 @@
+{
+  "model": "snaive_168",
+  "split": "dev",
+  "windows": 40,
+  "inputs": "336 h history",
+  "lightgbm_params": null,
+  "mean_seconds_per_window": 0.0,
+  "failures": [],
+  "date": "2026-10-25T21:18:46",
+  "total_seconds_all_models": 54.9
+}
