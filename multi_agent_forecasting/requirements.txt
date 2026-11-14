@@ -1,0 +1,7 @@
+openai>=1.99,<3
+numpy>=1.26,<3
+pandas>=2.2,<3
+pyarrow>=20
+scipy>=1.11,<2
+python-dotenv>=1,<2
+holidays>=0.60,<1
