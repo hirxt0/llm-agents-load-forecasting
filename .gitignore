@@ -1,4 +1,5 @@
-results/
+results/*
+!results/summary_test_main_tools.csv
 data/
 __pycache__/
 .venv/

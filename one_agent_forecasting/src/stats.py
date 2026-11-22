@@ -15,7 +15,6 @@ import pandas as pd
 from scipy.stats import wilcoxon
 
 B = 2000
-RNG = np.random.default_rng(0)
 
 
 def building_log_ratios(w, a, b, metric="NRMSE"):
@@ -31,7 +30,9 @@ def building_log_ratios(w, a, b, metric="NRMSE"):
 
 def bootstrap_ci(x, level=0.95):
     x = np.asarray(x, float)
-    means = x[RNG.integers(0, len(x), (B, len(x)))].mean(axis=1)
+    # Одинаковая выборка зданий для обоих уровней ДИ, независимо от порядка сравнений.
+    rng = np.random.default_rng(0)
+    means = x[rng.integers(0, len(x), (B, len(x)))].mean(axis=1)
     lo, hi = np.percentile(means, [(1 - level) / 2 * 100, (1 + level) / 2 * 100])
     return float(np.exp(lo)), float(np.exp(hi))
 

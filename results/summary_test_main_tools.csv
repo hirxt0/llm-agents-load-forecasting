@@ -1,0 +1,6 @@
+method,n_windows,describe_series,get_values,reference_profiles,calendar,building_info,weather,news_search
+gpt-5-low_calendar_noisy,200,200,24,200,200,189,0,0
+gpt-5-low_full_noisy,200,200,19,200,200,179,200,0
+gpt-5-low_no_tools_noisy,200,0,0,0,0,0,0,0
+gpt-5-low_series_noisy,200,200,29,200,0,0,0,0
+gpt-5-low_weather_noisy,200,200,11,200,200,167,200,0

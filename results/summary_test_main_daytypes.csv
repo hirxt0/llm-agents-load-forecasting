@@ -17,6 +17,7 @@ BDG-2,gpt-5-low_series_noisy_r1,11.63,6.16,4.03,5.4
 BDG-2,gpt-5-low_weather_noisy,11.47,9.24,6.5,8.13
 BDG-2,gpt-5-low_weather_noisy_masked,11.58,9.19,8.76,6.16
 BDG-2,gpt-5-low_weather_noisy_r1,16.62,6.07,3.96,6.23
+BDG-2,ref_day_profile,13.6,10.73,7.36,8.44
 BDG-2,snaive_168,16.18,10.68,10.07,8.76
 BDG-2,snaive_24,9.21,7.83,7.69,9.76
 LCL,bl_automl,66.45,66.17,61.93,66.85
@@ -37,5 +38,6 @@ LCL,gpt-5-low_series_noisy_r1,72.27,64.4,71.57,131.67
 LCL,gpt-5-low_weather_noisy,59.73,69.93,56.88,72.73
 LCL,gpt-5-low_weather_noisy_masked,61.91,80.74,55.21,72.73
 LCL,gpt-5-low_weather_noisy_r1,54.19,57.37,60.71,131.05
+LCL,ref_day_profile,67.78,56.96,52.96,68.58
 LCL,snaive_168,105.98,85.69,70.76,86.39
 LCL,snaive_24,78.23,75.41,65.17,107.78

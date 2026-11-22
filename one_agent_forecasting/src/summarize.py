@@ -36,12 +36,18 @@ def load_windows(split, subset="main"):
 
 
 def reference_predictions(w):
-    """Эталоны «как вчера» и «как неделю назад» для всех окон."""
+    """Два сезонных ориентира и доступный агенту медианный профиль будня/выходного."""
     out = []
     for (b, i), g in w.groupby(["building_id", "window_id"]):
         g = g.sort_values("step")
-        y, truth = g.y_clean.to_numpy(), g[g.step >= 0].y_clean.to_numpy()
-        for name, pred in [("snaive_24", y[312:336]), ("snaive_168", y[168:192])]:
+        history, future = g[g.step < 0], g[g.step >= 0]
+        y, truth = history.y_clean.to_numpy(), future.y_clean.to_numpy()
+        weekend = future.timestamp.iloc[0].dayofweek >= 5
+        matching = history[(history.timestamp.dt.dayofweek >= 5) == weekend]
+        medians = matching.groupby(matching.timestamp.dt.hour).y_clean.median().reindex(range(24))
+        profile = [round(float(value), 4) for value in medians]  # ForecastEnv._profile
+        for name, pred in [("snaive_24", y[-24:]), ("snaive_168", y[-168:-144]),
+                           ("ref_day_profile", profile)]:
             out.append(pd.DataFrame({"method": name, "building_id": b, "window_id": i, "hour": range(24),
                                      "y_true": truth, "y_pred": pred}))
     return pd.concat(out, ignore_index=True)
@@ -114,23 +120,27 @@ def main():
 
     # 3) сравнения
     methods = sorted(pw.method.unique())
-    agents = [m for m in methods if not m.startswith(("snaive", "bl_"))]
+    agents = [m for m in methods if not m.startswith(("snaive", "bl_", "ref_"))]
     main_runs = [m for m in agents if "masked" not in m and not is_repeat(m)]
     pairs = []
     for prefix in sorted({m.split("_")[0] for m in main_runs}):
         steps = [m for v in LADDER for m in main_runs if m.startswith(f"{prefix}_{v}_")]
         pairs += list(zip(steps, steps[1:]))
-    refs = ["snaive_168"] + [m for m in methods if m.startswith("bl_")]
+    refs = [m for m in methods if m.startswith("bl_")]
+    refs.extend(m for m in ("snaive_24", "snaive_168") if f"bl_{m}" not in refs)
     pairs += [(r, m) for m in main_runs for r in refs]
     res = []
-    for x, y in pairs:
+    families = [("agent", x, y) for x, y in pairs]
+    families.extend(("profile_post_hoc", "ref_day_profile", m)
+                    for m in main_runs if "_series_" in m and not m.startswith("ma_"))
+    for family, x, y in families:
         for ds in ("BDG-2", "LCL"):
             r = paired_compare(pw[pw.dataset == ds], x, y)
             if r:
-                res.append({**r, "dataset": ds})
+                res.append({**r, "dataset": ds, "family": family})
     if res:
         cmp = pd.DataFrame(res)
-        cmp["p_holm"] = holm(cmp.p)
+        cmp["p_holm"] = cmp.groupby("family").p.transform(holm)
         cmp["ci95"] = cmp.ci95.map(lambda c: f"[{c[0]:.3f}, {c[1]:.3f}]")
         cmp = cmp.drop(columns="ci90")
         print("\n=== Сравнения: отношение NRMSE b/a по зданиям (< 1 — b лучше), 95% ДИ, Wilcoxon + Холм")
@@ -163,6 +173,15 @@ def main():
     # 6) стоимость и надёжность
     if not scores.empty:
         scores = scores[[k in hist for k in zip(scores.building_id, scores.window_id)]]
+        single = scores[scores.method.isin([m for m in main_runs if not m.startswith("ma_")])]
+        if "tools_used" in single and not single.empty:
+            tools = ["describe_series", "get_values", "reference_profiles", "calendar",
+                     "building_info", "weather", "news_search"]
+            used = single.tools_used.fillna("").str.split(",")
+            counts = pd.DataFrame({tool: used.map(lambda names: tool in names) for tool in tools})
+            counts.insert(0, "n_windows", 1)
+            counts.groupby(single.method).sum().to_csv(
+                RESULTS / f"summary_{a.split}_{a.subset}_tools.csv")
         c = scores.groupby("method").agg(n=("failed", "size"), failed=("failed", "mean"),
                                          llm_calls=("llm_calls", "mean"), tokens_in=("tokens_in", "mean"),
                                          tokens_out=("tokens_out", "mean"), seconds=("seconds", "mean"),
